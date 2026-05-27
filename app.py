@@ -803,7 +803,7 @@ if uploaded_file is not None:
         # VISUALISASI PERBANDINGAN
         # ==========================================
 
-        fig6, ax6 = plt.subplots(figsize=(12,5))
+fig6, ax6 = plt.subplots(figsize=(12,5))
 
         ax6.plot(
             data_produk.index,

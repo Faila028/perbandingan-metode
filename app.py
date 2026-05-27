@@ -8,7 +8,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import mean_absolute_error
 
-from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from statsmodels.tsa.holtwinters import (
+    ExponentialSmoothing,
+    Holt
+)
+
 from statsmodels.tsa.arima.model import ARIMA
 
 # ==========================================
@@ -291,7 +295,12 @@ if uploaded_file is not None:
 
     metode = st.selectbox(
         "Pilih Metode Forecasting",
-        ["Holt-Winters", "ARIMA", "Perbandingan Keduanya"]
+        [
+            "Holt-Winters",
+            "Double Exponential Smoothing",
+            "ARIMA",
+            "Perbandingan Semua Metode"
+        ]
     )
 
     # ==========================================
@@ -355,16 +364,12 @@ if uploaded_file is not None:
 
         st.write(forecast_hw)
 
-        # MAE
-
         mae_hw = mean_absolute_error(
             data_produk,
             fit_hw.fittedvalues
         )
 
         st.write(f"MAE Holt-Winters: {mae_hw:.2f}")
-
-        # Visualisasi
 
         fig3, ax3 = plt.subplots(figsize=(12,5))
 
@@ -387,15 +392,72 @@ if uploaded_file is not None:
             f'Forecast Holt-Winters Produk {produk}'
         )
 
-        ax3.set_xlabel('Periode')
-
-        ax3.set_ylabel('Jumlah Barang Keluar')
-
         ax3.legend()
 
         ax3.grid(True)
 
         st.pyplot(fig3)
+
+    # ==========================================
+    # DOUBLE EXPONENTIAL SMOOTHING
+    # ==========================================
+
+    elif metode == "Double Exponential Smoothing":
+
+        model_des = Holt(
+            data_produk
+        )
+
+        fit_des = model_des.fit()
+
+        forecast_des = fit_des.forecast(
+            jumlah_forecast
+        )
+
+        forecast_des = forecast_des.clip(lower=0)
+
+        st.subheader(
+            "Hasil Forecast Double Exponential Smoothing"
+        )
+
+        st.write(forecast_des)
+
+        mae_des = mean_absolute_error(
+            data_produk,
+            fit_des.fittedvalues
+        )
+
+        st.write(
+            f"MAE Double Exponential Smoothing: "
+            f"{mae_des:.2f}"
+        )
+
+        fig4, ax4 = plt.subplots(figsize=(12,5))
+
+        ax4.plot(
+            data_produk.index,
+            data_produk.values,
+            marker='o',
+            label='Data Aktual'
+        )
+
+        ax4.plot(
+            forecast_des.index,
+            forecast_des.values,
+            marker='o',
+            linestyle='--',
+            label='Double Exponential Smoothing'
+        )
+
+        ax4.set_title(
+            f'Forecast DES Produk {produk}'
+        )
+
+        ax4.legend()
+
+        ax4.grid(True)
+
+        st.pyplot(fig4)
 
     # ==========================================
     # ARIMA
@@ -420,8 +482,6 @@ if uploaded_file is not None:
 
         st.write(forecast_arima)
 
-        # MAE
-
         fitted_arima = fit_arima.predict(
             start=1,
             end=len(data_produk)-1
@@ -436,18 +496,16 @@ if uploaded_file is not None:
 
         st.write(f"MAE ARIMA: {mae_arima:.2f}")
 
-        # Visualisasi
+        fig5, ax5 = plt.subplots(figsize=(12,5))
 
-        fig4, ax4 = plt.subplots(figsize=(12,5))
-
-        ax4.plot(
+        ax5.plot(
             data_produk.index,
             data_produk.values,
             marker='o',
             label='Data Aktual'
         )
 
-        ax4.plot(
+        ax5.plot(
             forecast_arima.index,
             forecast_arima.values,
             marker='o',
@@ -455,22 +513,18 @@ if uploaded_file is not None:
             label='Forecast ARIMA'
         )
 
-        ax4.set_title(
+        ax5.set_title(
             f'Forecast ARIMA Produk {produk}'
         )
 
-        ax4.set_xlabel('Periode')
+        ax5.legend()
 
-        ax4.set_ylabel('Jumlah Barang Keluar')
+        ax5.grid(True)
 
-        ax4.legend()
-
-        ax4.grid(True)
-
-        st.pyplot(fig4)
+        st.pyplot(fig5)
 
     # ==========================================
-    # PERBANDINGAN METODE
+    # PERBANDINGAN SEMUA METODE
     # ==========================================
 
     else:
@@ -497,6 +551,27 @@ if uploaded_file is not None:
         mae_hw = mean_absolute_error(
             data_produk,
             fit_hw.fittedvalues
+        )
+
+        # ==========================================
+        # DOUBLE EXPONENTIAL SMOOTHING
+        # ==========================================
+
+        model_des = Holt(
+            data_produk
+        )
+
+        fit_des = model_des.fit()
+
+        forecast_des = fit_des.forecast(
+            jumlah_forecast
+        )
+
+        forecast_des = forecast_des.clip(lower=0)
+
+        mae_des = mean_absolute_error(
+            data_produk,
+            fit_des.fittedvalues
         )
 
         # ==========================================
@@ -532,11 +607,21 @@ if uploaded_file is not None:
         # TABEL PERBANDINGAN
         # ==========================================
 
-        st.subheader("Perbandingan Metode Forecasting")
+        st.subheader(
+            "Perbandingan Semua Metode Forecasting"
+        )
 
         perbandingan = pd.DataFrame({
-            'Metode': ['Holt-Winters', 'ARIMA'],
-            'MAE': [mae_hw, mae_arima]
+            'Metode': [
+                'Holt-Winters',
+                'Double Exponential Smoothing',
+                'ARIMA'
+            ],
+            'MAE': [
+                mae_hw,
+                mae_des,
+                mae_arima
+            ]
         })
 
         st.dataframe(perbandingan)
@@ -560,16 +645,16 @@ if uploaded_file is not None:
         # VISUALISASI PERBANDINGAN
         # ==========================================
 
-        fig5, ax5 = plt.subplots(figsize=(12,5))
+        fig6, ax6 = plt.subplots(figsize=(12,5))
 
-        ax5.plot(
+        ax6.plot(
             data_produk.index,
             data_produk.values,
             marker='o',
             label='Data Aktual'
         )
 
-        ax5.plot(
+        ax6.plot(
             forecast_hw.index,
             forecast_hw.values,
             marker='o',
@@ -577,7 +662,15 @@ if uploaded_file is not None:
             label='Holt-Winters'
         )
 
-        ax5.plot(
+        ax6.plot(
+            forecast_des.index,
+            forecast_des.values,
+            marker='o',
+            linestyle='--',
+            label='Double Exponential Smoothing'
+        )
+
+        ax6.plot(
             forecast_arima.index,
             forecast_arima.values,
             marker='o',
@@ -585,16 +678,16 @@ if uploaded_file is not None:
             label='ARIMA'
         )
 
-        ax5.set_title(
+        ax6.set_title(
             f'Perbandingan Forecast Produk {produk}'
         )
 
-        ax5.set_xlabel('Periode')
+        ax6.set_xlabel('Periode')
 
-        ax5.set_ylabel('Jumlah Barang Keluar')
+        ax6.set_ylabel('Jumlah Barang Keluar')
 
-        ax5.legend()
+        ax6.legend()
 
-        ax5.grid(True)
+        ax6.grid(True)
 
-        st.pyplot(fig5)
+        st.pyplot(fig6)

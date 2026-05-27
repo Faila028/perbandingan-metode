@@ -21,10 +21,70 @@ from statsmodels.tsa.arima.model import ARIMA
 
 st.set_page_config(
     page_title="Forecasting Barang",
+    page_icon="📦",
     layout="wide"
 )
 
-st.title("Forecasting dan Clustering Barang")
+# ==========================================
+# CUSTOM CSS
+# ==========================================
+
+st.markdown("""
+<style>
+
+.main {
+    background-color: #f5f7fa;
+}
+
+h1 {
+    color: #1f4e79;
+    text-align: center;
+    font-weight: bold;
+}
+
+h2, h3 {
+    color: #1f4e79;
+}
+
+.stButton>button {
+    background-color: #1f77b4;
+    color: white;
+    border-radius: 10px;
+    border: none;
+    padding: 10px 20px;
+    font-weight: bold;
+}
+
+.stDownloadButton>button {
+    background-color: #28a745;
+    color: white;
+    border-radius: 10px;
+    border: none;
+    padding: 10px 20px;
+    font-weight: bold;
+}
+
+[data-testid="stMetricValue"] {
+    color: #1f77b4;
+    font-size: 28px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# ==========================================
+# JUDUL
+# ==========================================
+
+st.title("📦 Forecasting dan Clustering Barang")
+
+st.markdown("""
+### Sistem Analisis Barang Keluar
+Aplikasi ini digunakan untuk:
+- Clustering produk menggunakan K-Means
+- Forecasting permintaan barang
+- Perbandingan metode forecasting
+""")
 
 # ==========================================
 # UPLOAD FILE
@@ -47,30 +107,56 @@ if uploaded_file is not None:
 
     df = pd.read_excel(uploaded_file)
 
-    st.subheader("Data Awal")
+    st.subheader("📄 Data Awal")
+
     st.dataframe(df.head())
+
+    # ==========================================
+    # DASHBOARD RINGKAS
+    # ==========================================
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric(
+            "Jumlah Data",
+            len(df)
+        )
+
+    with col2:
+        st.metric(
+            "Jumlah Produk",
+            df['id_produk'].nunique()
+        )
+
+    with col3:
+        st.metric(
+            "Total Barang Keluar",
+            int(df['keluar'].sum())
+        )
 
     # ==========================================
     # CEK NAMA KOLOM
     # ==========================================
 
-    st.subheader("Nama Kolom")
+    st.subheader("📌 Nama Kolom")
+
     st.write(df.columns)
 
     # ==========================================
-    # UBAH FORMAT TANGGAL
+    # FORMAT TANGGAL
     # ==========================================
 
     df['tgl_input'] = pd.to_datetime(df['tgl_input'])
 
     # ==========================================
-    # MEMBUAT FORMAT BULAN
+    # FORMAT BULAN
     # ==========================================
 
     df['Bulan'] = df['tgl_input'].dt.strftime('%b-%y')
 
     # ==========================================
-    # MEMBUAT PIVOT TABLE
+    # PIVOT TABLE
     # ==========================================
 
     pivot_table = df.pivot_table(
@@ -92,19 +178,22 @@ if uploaded_file is not None:
         'Jul-24','Aug-24','Sep-24','Oct-24','Nov-24','Dec-24'
     ]
 
-    pivot_table = pivot_table.reindex(columns=urutan_bulan)
+    pivot_table = pivot_table.reindex(
+        columns=urutan_bulan
+    )
 
-    st.subheader("Pivot Table Barang Keluar")
+    st.subheader("📊 Pivot Table Barang Keluar")
+
     st.dataframe(pivot_table)
 
     # ==========================================
-    # DOWNLOAD PIVOT TABLE
+    # DOWNLOAD CSV
     # ==========================================
 
     csv_data = pivot_table.to_csv().encode('utf-8')
 
     st.download_button(
-        label="Download Pivot Table",
+        label="⬇️ Download Pivot Table",
         data=csv_data,
         file_name='data_barang_keluar.csv',
         mime='text/csv'
@@ -114,23 +203,32 @@ if uploaded_file is not None:
     # CLUSTERING
     # ==========================================
 
-    st.header("Clustering Produk")
+    st.header("📌 Clustering Produk")
 
     if 'Total' in pivot_table.columns:
-        pivot_table = pivot_table.drop(columns=['Total'])
+        pivot_table = pivot_table.drop(
+            columns=['Total']
+        )
 
     pivot_table['Total'] = pivot_table.sum(axis=1)
 
-    filtered_data = pivot_table[pivot_table['Total'] > 1]
+    filtered_data = pivot_table[
+        pivot_table['Total'] > 1
+    ]
 
-    filtered_data = filtered_data.drop(columns=['Total'])
+    filtered_data = filtered_data.drop(
+        columns=['Total']
+    )
 
     # ==========================================
-    # NORMALISASI DATA
+    # NORMALISASI
     # ==========================================
 
     scaler = StandardScaler()
-    scaled_data = scaler.fit_transform(filtered_data)
+
+    scaled_data = scaler.fit_transform(
+        filtered_data
+    )
 
     # ==========================================
     # ELBOW METHOD
@@ -153,18 +251,28 @@ if uploaded_file is not None:
 
     fig1, ax1 = plt.subplots(figsize=(8,5))
 
-    ax1.plot(K, inertia, marker='o')
+    ax1.plot(
+        K,
+        inertia,
+        marker='o'
+    )
 
-    ax1.set_xlabel('Jumlah Cluster (k)')
-    ax1.set_ylabel('Inertia')
-    ax1.set_title('Metode Elbow')
+    ax1.set_title("Metode Elbow")
 
-    ax1.grid(True)
+    ax1.set_xlabel("Jumlah Cluster")
+
+    ax1.set_ylabel("Inertia")
+
+    ax1.grid(
+        True,
+        linestyle='--',
+        alpha=0.5
+    )
 
     st.pyplot(fig1)
 
     # ==========================================
-    # PILIH JUMLAH CLUSTER
+    # PILIH CLUSTER
     # ==========================================
 
     jumlah_cluster = st.slider(
@@ -175,7 +283,7 @@ if uploaded_file is not None:
     )
 
     # ==========================================
-    # K-MEANS CLUSTERING
+    # K-MEANS
     # ==========================================
 
     kmeans = KMeans(
@@ -183,25 +291,59 @@ if uploaded_file is not None:
         random_state=42
     )
 
-    cluster = kmeans.fit_predict(scaled_data)
+    cluster = kmeans.fit_predict(
+        scaled_data
+    )
 
     filtered_data['Cluster'] = cluster
 
-    st.subheader("Hasil Clustering")
+    st.subheader("📌 Hasil Clustering")
+
     st.dataframe(filtered_data.head())
 
     # ==========================================
-    # JUMLAH PRODUK PER CLUSTER
+    # JUMLAH PRODUK
     # ==========================================
 
-    st.subheader("Jumlah Produk per Cluster")
+    st.subheader("📊 Jumlah Produk per Cluster")
 
-    st.write(
-        filtered_data['Cluster'].value_counts()
+    cluster_count = filtered_data[
+        'Cluster'
+    ].value_counts()
+
+    st.write(cluster_count)
+
+    # ==========================================
+    # GRAFIK CLUSTER
+    # ==========================================
+
+    fig_cluster, ax_cluster = plt.subplots(
+        figsize=(7,5)
     )
 
+    ax_cluster.bar(
+        cluster_count.index.astype(str),
+        cluster_count.values
+    )
+
+    ax_cluster.set_title(
+        'Distribusi Produk per Cluster'
+    )
+
+    ax_cluster.set_xlabel('Cluster')
+
+    ax_cluster.set_ylabel('Jumlah Produk')
+
+    ax_cluster.grid(
+        True,
+        linestyle='--',
+        alpha=0.5
+    )
+
+    st.pyplot(fig_cluster)
+
     # ==========================================
-    # RATA-RATA TOTAL PER CLUSTER
+    # RATA-RATA TOTAL
     # ==========================================
 
     filtered_data['Total'] = filtered_data.drop(
@@ -212,36 +354,56 @@ if uploaded_file is not None:
         'Cluster'
     )['Total'].mean()
 
-    st.subheader("Rata-rata Total per Cluster")
+    st.subheader(
+        "📈 Rata-rata Total per Cluster"
+    )
 
     st.write(cluster_summary)
+
+    # ==========================================
+    # PIE CHART
+    # ==========================================
+
+    fig_pie, ax_pie = plt.subplots(
+        figsize=(6,6)
+    )
+
+    ax_pie.pie(
+        cluster_summary,
+        labels=cluster_summary.index,
+        autopct='%1.1f%%'
+    )
+
+    ax_pie.set_title(
+        'Persentase Cluster'
+    )
+
+    st.pyplot(fig_pie)
 
     # ==========================================
     # PILIH CLUSTER
     # ==========================================
 
-    st.subheader("Lihat Produk Berdasarkan Cluster")
-
     pilih_cluster = st.selectbox(
         "Pilih Cluster",
-        sorted(filtered_data['Cluster'].unique())
+        sorted(
+            filtered_data['Cluster'].unique()
+        )
     )
-
-    # ==========================================
-    # TAMPILKAN PRODUK DALAM CLUSTER
-    # ==========================================
 
     produk_cluster = filtered_data[
         filtered_data['Cluster'] == pilih_cluster
     ].index.tolist()
 
-    st.write(f"Daftar Produk di Cluster {pilih_cluster}")
+    st.subheader(
+        f"📦 Produk dalam Cluster {pilih_cluster}"
+    )
 
-    df_produk_cluster = pd.DataFrame({
-        'Produk': produk_cluster
-    })
-
-    st.dataframe(df_produk_cluster)
+    st.dataframe(
+        pd.DataFrame({
+            'Produk': produk_cluster
+        })
+    )
 
     st.write(
         f"Jumlah Produk: {len(produk_cluster)}"
@@ -251,7 +413,7 @@ if uploaded_file is not None:
     # FORECASTING
     # ==========================================
 
-    st.header("Forecasting Barang")
+    st.header("📈 Forecasting Barang")
 
     daftar_produk = filtered_data.index.tolist()
 
@@ -261,7 +423,7 @@ if uploaded_file is not None:
     )
 
     # ==========================================
-    # AMBIL DATA PRODUK
+    # AMBIL DATA
     # ==========================================
 
     data_produk = filtered_data.loc[produk]
@@ -274,10 +436,13 @@ if uploaded_file is not None:
     if 'Total' in data_produk.index:
         kolom_hapus.append('Total')
 
-    data_produk = data_produk.drop(kolom_hapus)
+    data_produk = data_produk.drop(
+        kolom_hapus
+    )
 
-    # ubah ke numerik
-    data_produk = pd.to_numeric(data_produk)
+    data_produk = pd.to_numeric(
+        data_produk
+    )
 
     # ==========================================
     # INDEX TANGGAL
@@ -290,7 +455,7 @@ if uploaded_file is not None:
     )
 
     # ==========================================
-    # PILIH METODE FORECASTING
+    # PILIH METODE
     # ==========================================
 
     metode = st.selectbox(
@@ -303,22 +468,20 @@ if uploaded_file is not None:
         ]
     )
 
-    # ==========================================
-    # JUMLAH FORECAST
-    # ==========================================
-
     jumlah_forecast = st.slider(
         "Jumlah Forecast Bulan",
-        min_value=1,
-        max_value=12,
-        value=6
+        1,
+        12,
+        6
     )
 
     # ==========================================
-    # VISUALISASI DATA AKTUAL
+    # VISUAL DATA AKTUAL
     # ==========================================
 
-    fig2, ax2 = plt.subplots(figsize=(12,5))
+    fig2, ax2 = plt.subplots(
+        figsize=(12,5)
+    )
 
     ax2.plot(
         data_produk.index,
@@ -327,15 +490,17 @@ if uploaded_file is not None:
         label='Data Aktual'
     )
 
-    ax2.set_title(f'Data Aktual Produk {produk}')
-
-    ax2.set_xlabel('Periode')
-
-    ax2.set_ylabel('Jumlah Barang Keluar')
+    ax2.set_title(
+        f'Data Aktual Produk {produk}'
+    )
 
     ax2.legend()
 
-    ax2.grid(True)
+    ax2.grid(
+        True,
+        linestyle='--',
+        alpha=0.5
+    )
 
     st.pyplot(fig2)
 
@@ -358,20 +523,25 @@ if uploaded_file is not None:
             jumlah_forecast
         )
 
-        forecast_hw = forecast_hw.clip(lower=0)
-
-        st.subheader("Hasil Forecast Holt-Winters")
-
-        st.write(forecast_hw)
+        forecast_hw = forecast_hw.clip(
+            lower=0
+        )
 
         mae_hw = mean_absolute_error(
             data_produk,
             fit_hw.fittedvalues
         )
 
-        st.write(f"MAE Holt-Winters: {mae_hw:.2f}")
+        st.metric(
+            "MAE Holt-Winters",
+            f"{mae_hw:.2f}"
+        )
 
-        fig3, ax3 = plt.subplots(figsize=(12,5))
+        st.write(forecast_hw)
+
+        fig3, ax3 = plt.subplots(
+            figsize=(12,5)
+        )
 
         ax3.plot(
             data_produk.index,
@@ -385,16 +555,16 @@ if uploaded_file is not None:
             forecast_hw.values,
             marker='o',
             linestyle='--',
-            label='Forecast Holt-Winters'
-        )
-
-        ax3.set_title(
-            f'Forecast Holt-Winters Produk {produk}'
+            label='Forecast HW'
         )
 
         ax3.legend()
 
-        ax3.grid(True)
+        ax3.grid(
+            True,
+            linestyle='--',
+            alpha=0.5
+        )
 
         st.pyplot(fig3)
 
@@ -414,25 +584,25 @@ if uploaded_file is not None:
             jumlah_forecast
         )
 
-        forecast_des = forecast_des.clip(lower=0)
-
-        st.subheader(
-            "Hasil Forecast Double Exponential Smoothing"
+        forecast_des = forecast_des.clip(
+            lower=0
         )
-
-        st.write(forecast_des)
 
         mae_des = mean_absolute_error(
             data_produk,
             fit_des.fittedvalues
         )
 
-        st.write(
-            f"MAE Double Exponential Smoothing: "
+        st.metric(
+            "MAE DES",
             f"{mae_des:.2f}"
         )
 
-        fig4, ax4 = plt.subplots(figsize=(12,5))
+        st.write(forecast_des)
+
+        fig4, ax4 = plt.subplots(
+            figsize=(12,5)
+        )
 
         ax4.plot(
             data_produk.index,
@@ -446,16 +616,16 @@ if uploaded_file is not None:
             forecast_des.values,
             marker='o',
             linestyle='--',
-            label='Double Exponential Smoothing'
-        )
-
-        ax4.set_title(
-            f'Forecast DES Produk {produk}'
+            label='Forecast DES'
         )
 
         ax4.legend()
 
-        ax4.grid(True)
+        ax4.grid(
+            True,
+            linestyle='--',
+            alpha=0.5
+        )
 
         st.pyplot(fig4)
 
@@ -476,11 +646,9 @@ if uploaded_file is not None:
             steps=jumlah_forecast
         )
 
-        forecast_arima = forecast_arima.clip(lower=0)
-
-        st.subheader("Hasil Forecast ARIMA")
-
-        st.write(forecast_arima)
+        forecast_arima = forecast_arima.clip(
+            lower=0
+        )
 
         fitted_arima = fit_arima.predict(
             start=1,
@@ -494,9 +662,16 @@ if uploaded_file is not None:
             fitted_arima
         )
 
-        st.write(f"MAE ARIMA: {mae_arima:.2f}")
+        st.metric(
+            "MAE ARIMA",
+            f"{mae_arima:.2f}"
+        )
 
-        fig5, ax5 = plt.subplots(figsize=(12,5))
+        st.write(forecast_arima)
+
+        fig5, ax5 = plt.subplots(
+            figsize=(12,5)
+        )
 
         ax5.plot(
             data_produk.index,
@@ -513,13 +688,13 @@ if uploaded_file is not None:
             label='Forecast ARIMA'
         )
 
-        ax5.set_title(
-            f'Forecast ARIMA Produk {produk}'
-        )
-
         ax5.legend()
 
-        ax5.grid(True)
+        ax5.grid(
+            True,
+            linestyle='--',
+            alpha=0.5
+        )
 
         st.pyplot(fig5)
 
@@ -529,9 +704,7 @@ if uploaded_file is not None:
 
     else:
 
-        # ==========================================
-        # HOLT-WINTERS
-        # ==========================================
+        # Holt-Winters
 
         model_hw = ExponentialSmoothing(
             data_produk,
@@ -546,16 +719,12 @@ if uploaded_file is not None:
             jumlah_forecast
         )
 
-        forecast_hw = forecast_hw.clip(lower=0)
-
         mae_hw = mean_absolute_error(
             data_produk,
             fit_hw.fittedvalues
         )
 
-        # ==========================================
-        # DOUBLE EXPONENTIAL SMOOTHING
-        # ==========================================
+        # DES
 
         model_des = Holt(
             data_produk
@@ -567,16 +736,12 @@ if uploaded_file is not None:
             jumlah_forecast
         )
 
-        forecast_des = forecast_des.clip(lower=0)
-
         mae_des = mean_absolute_error(
             data_produk,
             fit_des.fittedvalues
         )
 
-        # ==========================================
         # ARIMA
-        # ==========================================
 
         model_arima = ARIMA(
             data_produk,
@@ -588,8 +753,6 @@ if uploaded_file is not None:
         forecast_arima = fit_arima.forecast(
             steps=jumlah_forecast
         )
-
-        forecast_arima = forecast_arima.clip(lower=0)
 
         fitted_arima = fit_arima.predict(
             start=1,
@@ -608,7 +771,7 @@ if uploaded_file is not None:
         # ==========================================
 
         st.subheader(
-            "Perbandingan Semua Metode Forecasting"
+            "📊 Perbandingan Metode"
         )
 
         perbandingan = pd.DataFrame({
@@ -624,7 +787,41 @@ if uploaded_file is not None:
             ]
         })
 
-        st.dataframe(perbandingan)
+        st.dataframe(
+            perbandingan.style.highlight_min(
+                axis=0,
+                color='lightgreen'
+            )
+        )
+
+        # ==========================================
+        # GRAFIK MAE
+        # ==========================================
+
+        fig_mae, ax_mae = plt.subplots(
+            figsize=(8,5)
+        )
+
+        ax_mae.bar(
+            perbandingan['Metode'],
+            perbandingan['MAE']
+        )
+
+        ax_mae.set_title(
+            'Perbandingan Nilai MAE'
+        )
+
+        ax_mae.set_ylabel('MAE')
+
+        plt.xticks(rotation=10)
+
+        ax_mae.grid(
+            True,
+            linestyle='--',
+            alpha=0.5
+        )
+
+        st.pyplot(fig_mae)
 
         # ==========================================
         # METODE TERBAIK
@@ -634,6 +831,8 @@ if uploaded_file is not None:
             perbandingan['MAE'].idxmin()
         ]
 
+        st.balloons()
+
         st.success(
             f"Metode terbaik adalah "
             f"{metode_terbaik['Metode']} "
@@ -642,10 +841,12 @@ if uploaded_file is not None:
         )
 
         # ==========================================
-        # VISUALISASI PERBANDINGAN
+        # VISUALISASI GABUNGAN
         # ==========================================
 
-        fig6, ax6 = plt.subplots(figsize=(12,5))
+        fig6, ax6 = plt.subplots(
+            figsize=(12,5)
+        )
 
         ax6.plot(
             data_produk.index,
@@ -667,7 +868,7 @@ if uploaded_file is not None:
             forecast_des.values,
             marker='o',
             linestyle='--',
-            label='Double Exponential Smoothing'
+            label='DES'
         )
 
         ax6.plot(
@@ -682,12 +883,12 @@ if uploaded_file is not None:
             f'Perbandingan Forecast Produk {produk}'
         )
 
-        ax6.set_xlabel('Periode')
-
-        ax6.set_ylabel('Jumlah Barang Keluar')
-
         ax6.legend()
 
-        ax6.grid(True)
+        ax6.grid(
+            True,
+            linestyle='--',
+            alpha=0.5
+        )
 
         st.pyplot(fig6)

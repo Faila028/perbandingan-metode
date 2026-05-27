@@ -641,4 +641,53 @@ if uploaded_file is not None:
             f"{metode_terbaik['MAE']:.2f}"
         )
 
-           
+        # ==========================================
+        # VISUALISASI PERBANDINGAN
+        # ==========================================
+
+        fig6, ax6 = plt.subplots(figsize=(12,5))
+
+        ax6.plot(
+            data_produk.index,
+            data_produk.values,
+            marker='o',
+            label='Data Aktual'
+        )
+
+        ax6.plot(
+            forecast_hw.index,
+            forecast_hw.values,
+            marker='o',
+            linestyle='--',
+            label='Holt-Winters'
+        )
+
+        ax6.plot(
+            forecast_des.index,
+            forecast_des.values,
+            marker='o',
+            linestyle='--',
+            label='Double Exponential Smoothing'
+        )
+
+        ax6.plot(
+            forecast_arima.index,
+            forecast_arima.values,
+            marker='o',
+            linestyle='--',
+            label='ARIMA'
+        )
+
+        ax6.set_title(
+            f'Perbandingan Forecast Produk {produk}'
+        )
+
+        ax6.set_xlabel('Periode')
+
+        ax6.set_ylabel('Jumlah Barang Keluar')
+
+        ax6.legend()
+
+        ax6.grid(True)
+
+        st.pyplot(fig6)

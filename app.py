@@ -785,19 +785,6 @@ if uploaded_file is not None:
             f"{mape:.2f}%"
         )
 
-    # ==========================================
-    # KESIMPULAN SEDERHANA
-    # ==========================================
-
-    st.subheader("Kesimpulan Forecast")
-
-    st.write(
-        f"""
-        Berdasarkan hasil forecasting menggunakan metode ARIMA ({p},{d},{q}),
-        produk {produk_arima} diperkirakan memiliki total permintaan sebesar
-        {total_forecast:.2f} selama {jumlah_forecast_arima} bulan ke depan.
-        """
-    )
 
         # ==========================================
         # VISUALISASI PERBANDINGAN
@@ -805,47 +792,45 @@ if uploaded_file is not None:
 
 fig6, ax6 = plt.subplots(figsize=(12,5))
 
-        ax6.plot(
-            data_produk.index,
-            data_produk.values,
-            marker='o',
-            label='Data Aktual'
-        )
+    ax6.plot(
+        data_produk.index,
+        data_produk.values,
+        marker='o',
+        label='Data Aktual'
+    )
 
-        ax6.plot(
-            forecast_hw.index,
-            forecast_hw.values,
-            marker='o',
-            linestyle='--',
-            label='Holt-Winters'
-        )
+    ax6.plot(
+        forecast_hw.index,
+        forecast_hw.values,
+        marker='o',
+        linestyle='--',
+        label='Holt-Winters'
+    )
 
-        ax6.plot(
-            forecast_des.index,
-            forecast_des.values,
-            marker='o',
-            linestyle='--',
-            label='Double Exponential Smoothing'
-        )
+    ax6.plot(
+        forecast_des.index,
+        forecast_des.values,
+        marker='o',
+        linestyle='--',
+        label='Double Exponential Smoothing'
+    )
 
-        ax6.plot(
-            forecast_arima.index,
-            forecast_arima.values,
-            marker='o',
-            linestyle='--',
-            label='ARIMA'
-        )
+    ax6.plot(
+        forecast_arima.index,
+        forecast_arima.values,
+        marker='o',
+        linestyle='--',
+        label='ARIMA'
+    )
 
-        ax6.set_title(
-            f'Perbandingan Forecast Produk {produk}'
-        )
+    ax6.set_title(
+        f'Perbandingan Forecast Produk {produk}'
+    )
 
-        ax6.set_xlabel('Periode')
+    ax6.set_xlabel('Periode')
+    ax6.set_ylabel('Jumlah Barang Keluar')
 
-        ax6.set_ylabel('Jumlah Barang Keluar')
+    ax6.legend()
+    ax6.grid(True)
 
-        ax6.legend()
-
-        ax6.grid(True)
-
-        st.pyplot(fig6)
+    st.pyplot(fig6)

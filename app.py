@@ -626,6 +626,55 @@ if uploaded_file is not None:
 
         st.dataframe(perbandingan)
 
+# ==========================================
+# HASIL FORECAST NUMERIK
+# ==========================================
+
+st.subheader("Hasil Forecast Numerik")
+
+# Membuat tabel forecast gabungan
+
+tabel_forecast = pd.DataFrame({
+    'Holt-Winters': forecast_hw.values,
+    'Double Exponential Smoothing': forecast_des.values,
+    'ARIMA': forecast_arima.values
+})
+
+# Membuat index periode forecast
+
+periode_forecast = pd.date_range(
+    start=data_produk.index[-1] + pd.offsets.MonthEnd(1),
+    periods=jumlah_forecast,
+    freq='ME'
+)
+
+tabel_forecast.index = periode_forecast
+
+# Mengubah format tanggal
+
+tabel_forecast.index = tabel_forecast.index.strftime('%b-%Y')
+
+# Membulatkan angka
+
+tabel_forecast = tabel_forecast.round(2)
+
+# Menampilkan tabel
+
+st.dataframe(tabel_forecast)
+
+# ==========================================
+# DOWNLOAD HASIL FORECAST
+# ==========================================
+
+csv_forecast = tabel_forecast.to_csv().encode('utf-8')
+
+st.download_button(
+    label="Download Hasil Forecast",
+    data=csv_forecast,
+    file_name='hasil_forecast.csv',
+    mime='text/csv'
+)
+
         # ==========================================
         # METODE TERBAIK
         # ==========================================

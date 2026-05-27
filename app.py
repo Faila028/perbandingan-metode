@@ -641,6 +641,164 @@ if uploaded_file is not None:
             f"{metode_terbaik['MAE']:.2f}"
         )
 
+            # ==========================================
+    # HASIL NUMERIK FORECAST
+    # ==========================================
+
+    st.subheader("Hasil Forecast Secara Numerik")
+
+    df_hasil_forecast = pd.DataFrame({
+        'Periode': forecast_arima.index.strftime('%b-%Y'),
+        'Hasil Forecast': forecast_arima.values.round(2)
+    })
+
+    st.dataframe(df_hasil_forecast)
+
+    # ==========================================
+    # TOTAL FORECAST
+    # ==========================================
+
+    total_forecast = forecast_arima.sum()
+
+    rata_forecast = forecast_arima.mean()
+
+    maks_forecast = forecast_arima.max()
+
+    minimum_forecast = forecast_arima.min()
+
+    st.subheader("Statistik Forecast")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.metric(
+            "Total Forecast",
+            f"{total_forecast:.2f}"
+        )
+
+        st.metric(
+            "Rata-rata Forecast",
+            f"{rata_forecast:.2f}"
+        )
+
+    with col2:
+
+        st.metric(
+            "Forecast Tertinggi",
+            f"{maks_forecast:.2f}"
+        )
+
+        st.metric(
+            "Forecast Terendah",
+            f"{minimum_forecast:.2f}"
+        )
+
+    # ==========================================
+    # PERBANDINGAN AKTUAL VS FITTED
+    # ==========================================
+
+    st.subheader("Perbandingan Aktual vs Prediksi")
+
+    df_perbandingan = pd.DataFrame({
+        'Aktual': data_produk_arima.values,
+        'Prediksi': fitted_values_arima.values
+    })
+
+    df_perbandingan.index = data_produk_arima.index.strftime(
+        '%b-%Y'
+    )
+
+    df_perbandingan['Selisih'] = (
+        df_perbandingan['Aktual']
+        - df_perbandingan['Prediksi']
+    )
+
+    st.dataframe(
+        df_perbandingan.round(2)
+    )
+
+    # ==========================================
+    # EVALUASI MODEL
+    # ==========================================
+
+    st.subheader("Evaluasi Model ARIMA")
+
+    # MAE
+
+    mae = abs(
+        fitted_values_arima
+        - data_produk_arima
+    ).mean()
+
+    # MSE
+
+    mse = (
+        (
+            fitted_values_arima
+            - data_produk_arima
+        ) ** 2
+    ).mean()
+
+    # RMSE
+
+    rmse = mse ** 0.5
+
+    # MAPE
+
+    mape = (
+        abs(
+            (
+                data_produk_arima
+                - fitted_values_arima
+            ) / data_produk_arima.replace(0, 1)
+        ).mean()
+    ) * 100
+
+    # ==========================================
+    # TAMPILKAN METRIK
+    # ==========================================
+
+    col3, col4 = st.columns(2)
+
+    with col3:
+
+        st.metric(
+            "MAE",
+            f"{mae:.2f}"
+        )
+
+        st.metric(
+            "RMSE",
+            f"{rmse:.2f}"
+        )
+
+    with col4:
+
+        st.metric(
+            "MSE",
+            f"{mse:.2f}"
+        )
+
+        st.metric(
+            "MAPE",
+            f"{mape:.2f}%"
+        )
+
+    # ==========================================
+    # KESIMPULAN SEDERHANA
+    # ==========================================
+
+    st.subheader("Kesimpulan Forecast")
+
+    st.write(
+        f"""
+        Berdasarkan hasil forecasting menggunakan metode ARIMA ({p},{d},{q}),
+        produk {produk_arima} diperkirakan memiliki total permintaan sebesar
+        {total_forecast:.2f} selama {jumlah_forecast_arima} bulan ke depan.
+        """
+    )
+
         # ==========================================
         # VISUALISASI PERBANDINGAN
         # ==========================================

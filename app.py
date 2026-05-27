@@ -76,7 +76,7 @@ h2, h3 {
 # JUDUL
 # ==========================================
 
-st.title("📦 Forecasting dan Clustering Barang")
+st.title("📦 Clustering dan Forecasting Permintaan Barang")
 
 st.markdown("""
 ### Sistem Analisis Barang Keluar

@@ -3,6 +3,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
@@ -14,6 +15,47 @@ from statsmodels.tsa.holtwinters import (
 )
 
 from statsmodels.tsa.arima.model import ARIMA
+
+# ==========================================
+# FUNGSI CROSTON
+# ==========================================
+
+def croston(ts, alpha=0.4, n_forecast=6):
+
+    ts = np.array(ts)
+
+    demand = []
+    interval = []
+
+    last_demand = 0
+    last_interval = 1
+
+    forecast = []
+
+    q = 1
+
+    for i in range(len(ts)):
+
+        if ts[i] > 0:
+
+            last_demand = alpha * ts[i] + (1 - alpha) * last_demand
+
+            last_interval = alpha * q + (1 - alpha) * last_interval
+
+            q = 1
+
+        else:
+
+            q += 1
+
+        if last_interval != 0:
+            forecast.append(last_demand / last_interval)
+        else:
+            forecast.append(0)
+
+    future_forecast = [forecast[-1]] * n_forecast
+
+    return np.array(forecast), np.array(future_forecast)
 
 # ==========================================
 # CONFIG HALAMAN
@@ -101,10 +143,6 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is not None:
 
-    # ==========================================
-    # MEMBACA FILE EXCEL
-    # ==========================================
-
     df = pd.read_excel(uploaded_file)
 
     st.subheader("📄 Data Awal")
@@ -112,7 +150,7 @@ if uploaded_file is not None:
     st.dataframe(df.head())
 
     # ==========================================
-    # DASHBOARD RINGKAS
+    # DASHBOARD
     # ==========================================
 
     col1, col2, col3 = st.columns(3)
@@ -136,22 +174,10 @@ if uploaded_file is not None:
         )
 
     # ==========================================
-    # CEK NAMA KOLOM
-    # ==========================================
-
-    st.subheader("📌 Nama Kolom")
-
-    st.write(df.columns)
-
-    # ==========================================
     # FORMAT TANGGAL
     # ==========================================
 
     df['tgl_input'] = pd.to_datetime(df['tgl_input'])
-
-    # ==========================================
-    # FORMAT BULAN
-    # ==========================================
 
     df['Bulan'] = df['tgl_input'].dt.strftime('%b-%y')
 
@@ -166,10 +192,6 @@ if uploaded_file is not None:
         aggfunc='sum',
         fill_value=0
     )
-
-    # ==========================================
-    # URUTAN BULAN
-    # ==========================================
 
     urutan_bulan = [
         'Jan-23','Feb-23','Mar-23','Apr-23','May-23','Jun-23',
@@ -187,7 +209,7 @@ if uploaded_file is not None:
     st.dataframe(pivot_table)
 
     # ==========================================
-    # DOWNLOAD CSV
+    # DOWNLOAD
     # ==========================================
 
     csv_data = pivot_table.to_csv().encode('utf-8')
@@ -205,11 +227,6 @@ if uploaded_file is not None:
 
     st.header("📌 Clustering Produk")
 
-    if 'Total' in pivot_table.columns:
-        pivot_table = pivot_table.drop(
-            columns=['Total']
-        )
-
     pivot_table['Total'] = pivot_table.sum(axis=1)
 
     filtered_data = pivot_table[
@@ -220,10 +237,6 @@ if uploaded_file is not None:
         columns=['Total']
     )
 
-    # ==========================================
-    # NORMALISASI
-    # ==========================================
-
     scaler = StandardScaler()
 
     scaled_data = scaler.fit_transform(
@@ -231,7 +244,7 @@ if uploaded_file is not None:
     )
 
     # ==========================================
-    # ELBOW METHOD
+    # ELBOW
     # ==========================================
 
     inertia = []
@@ -259,10 +272,6 @@ if uploaded_file is not None:
 
     ax1.set_title("Metode Elbow")
 
-    ax1.set_xlabel("Jumlah Cluster")
-
-    ax1.set_ylabel("Inertia")
-
     ax1.grid(
         True,
         linestyle='--',
@@ -277,14 +286,10 @@ if uploaded_file is not None:
 
     jumlah_cluster = st.slider(
         "Pilih Jumlah Cluster",
-        min_value=2,
-        max_value=10,
-        value=3
+        2,
+        10,
+        3
     )
-
-    # ==========================================
-    # K-MEANS
-    # ==========================================
 
     kmeans = KMeans(
         n_clusters=jumlah_cluster,
@@ -302,114 +307,6 @@ if uploaded_file is not None:
     st.dataframe(filtered_data.head())
 
     # ==========================================
-    # JUMLAH PRODUK
-    # ==========================================
-
-    st.subheader("📊 Jumlah Produk per Cluster")
-
-    cluster_count = filtered_data[
-        'Cluster'
-    ].value_counts()
-
-    st.write(cluster_count)
-
-    # ==========================================
-    # GRAFIK CLUSTER
-    # ==========================================
-
-    fig_cluster, ax_cluster = plt.subplots(
-        figsize=(7,5)
-    )
-
-    ax_cluster.bar(
-        cluster_count.index.astype(str),
-        cluster_count.values
-    )
-
-    ax_cluster.set_title(
-        'Distribusi Produk per Cluster'
-    )
-
-    ax_cluster.set_xlabel('Cluster')
-
-    ax_cluster.set_ylabel('Jumlah Produk')
-
-    ax_cluster.grid(
-        True,
-        linestyle='--',
-        alpha=0.5
-    )
-
-    st.pyplot(fig_cluster)
-
-    # ==========================================
-    # RATA-RATA TOTAL
-    # ==========================================
-
-    filtered_data['Total'] = filtered_data.drop(
-        columns=['Cluster']
-    ).sum(axis=1)
-
-    cluster_summary = filtered_data.groupby(
-        'Cluster'
-    )['Total'].mean()
-
-    st.subheader(
-        "📈 Rata-rata Total per Cluster"
-    )
-
-    st.write(cluster_summary)
-
-    # ==========================================
-    # PIE CHART
-    # ==========================================
-
-    fig_pie, ax_pie = plt.subplots(
-        figsize=(6,6)
-    )
-
-    ax_pie.pie(
-        cluster_summary,
-        labels=cluster_summary.index,
-        autopct='%1.1f%%'
-    )
-
-    ax_pie.set_title(
-        'Persentase Cluster'
-    )
-
-    st.pyplot(fig_pie)
-
-    # ==========================================
-    # PILIH CLUSTER
-    # ==========================================
-
-    pilih_cluster = st.selectbox(
-        "Pilih Cluster",
-        sorted(
-            filtered_data['Cluster'].unique()
-        )
-    )
-
-    produk_cluster = filtered_data[
-        filtered_data['Cluster'] == pilih_cluster
-    ].index.tolist()
-
-    st.subheader(
-        f"📦 Produk dalam Cluster {pilih_cluster}"
-    )
-
-    st.dataframe(
-        pd.DataFrame({
-            'Produk': produk_cluster
-        })
-    )
-
-    st.write(
-        f"Jumlah Produk: {len(produk_cluster)}"
-    )
-
-    # ==========================================
     # FORECASTING
     # ==========================================
 
@@ -422,19 +319,12 @@ if uploaded_file is not None:
         daftar_produk
     )
 
-    # ==========================================
-    # AMBIL DATA
-    # ==========================================
-
     data_produk = filtered_data.loc[produk]
 
     kolom_hapus = []
 
     if 'Cluster' in data_produk.index:
         kolom_hapus.append('Cluster')
-
-    if 'Total' in data_produk.index:
-        kolom_hapus.append('Total')
 
     data_produk = data_produk.drop(
         kolom_hapus
@@ -444,19 +334,11 @@ if uploaded_file is not None:
         data_produk
     )
 
-    # ==========================================
-    # INDEX TANGGAL
-    # ==========================================
-
     data_produk.index = pd.date_range(
         start='2023-01-01',
         periods=len(data_produk),
         freq='ME'
     )
-
-    # ==========================================
-    # PILIH METODE
-    # ==========================================
 
     metode = st.selectbox(
         "Pilih Metode Forecasting",
@@ -464,6 +346,7 @@ if uploaded_file is not None:
             "Holt-Winters",
             "Double Exponential Smoothing",
             "ARIMA",
+            "Croston",
             "Perbandingan Semua Metode"
         ]
     )
@@ -476,7 +359,7 @@ if uploaded_file is not None:
     )
 
     # ==========================================
-    # VISUAL DATA AKTUAL
+    # DATA AKTUAL
     # ==========================================
 
     fig2, ax2 = plt.subplots(
@@ -523,10 +406,6 @@ if uploaded_file is not None:
             jumlah_forecast
         )
 
-        forecast_hw = forecast_hw.clip(
-            lower=0
-        )
-
         mae_hw = mean_absolute_error(
             data_produk,
             fit_hw.fittedvalues
@@ -537,17 +416,13 @@ if uploaded_file is not None:
             f"{mae_hw:.2f}"
         )
 
-        st.write(forecast_hw)
-
-        fig3, ax3 = plt.subplots(
-            figsize=(12,5)
-        )
+        fig3, ax3 = plt.subplots(figsize=(12,5))
 
         ax3.plot(
             data_produk.index,
             data_produk.values,
             marker='o',
-            label='Data Aktual'
+            label='Aktual'
         )
 
         ax3.plot(
@@ -560,16 +435,12 @@ if uploaded_file is not None:
 
         ax3.legend()
 
-        ax3.grid(
-            True,
-            linestyle='--',
-            alpha=0.5
-        )
+        ax3.grid(True)
 
         st.pyplot(fig3)
 
     # ==========================================
-    # DOUBLE EXPONENTIAL SMOOTHING
+    # DES
     # ==========================================
 
     elif metode == "Double Exponential Smoothing":
@@ -584,10 +455,6 @@ if uploaded_file is not None:
             jumlah_forecast
         )
 
-        forecast_des = forecast_des.clip(
-            lower=0
-        )
-
         mae_des = mean_absolute_error(
             data_produk,
             fit_des.fittedvalues
@@ -598,17 +465,13 @@ if uploaded_file is not None:
             f"{mae_des:.2f}"
         )
 
-        st.write(forecast_des)
-
-        fig4, ax4 = plt.subplots(
-            figsize=(12,5)
-        )
+        fig4, ax4 = plt.subplots(figsize=(12,5))
 
         ax4.plot(
             data_produk.index,
             data_produk.values,
             marker='o',
-            label='Data Aktual'
+            label='Aktual'
         )
 
         ax4.plot(
@@ -621,11 +484,7 @@ if uploaded_file is not None:
 
         ax4.legend()
 
-        ax4.grid(
-            True,
-            linestyle='--',
-            alpha=0.5
-        )
+        ax4.grid(True)
 
         st.pyplot(fig4)
 
@@ -646,10 +505,6 @@ if uploaded_file is not None:
             steps=jumlah_forecast
         )
 
-        forecast_arima = forecast_arima.clip(
-            lower=0
-        )
-
         fitted_arima = fit_arima.predict(
             start=1,
             end=len(data_produk)-1
@@ -667,17 +522,13 @@ if uploaded_file is not None:
             f"{mae_arima:.2f}"
         )
 
-        st.write(forecast_arima)
-
-        fig5, ax5 = plt.subplots(
-            figsize=(12,5)
-        )
+        fig5, ax5 = plt.subplots(figsize=(12,5))
 
         ax5.plot(
             data_produk.index,
             data_produk.values,
             marker='o',
-            label='Data Aktual'
+            label='Aktual'
         )
 
         ax5.plot(
@@ -690,13 +541,60 @@ if uploaded_file is not None:
 
         ax5.legend()
 
-        ax5.grid(
-            True,
-            linestyle='--',
-            alpha=0.5
-        )
+        ax5.grid(True)
 
         st.pyplot(fig5)
+
+    # ==========================================
+    # CROSTON
+    # ==========================================
+
+    elif metode == "Croston":
+
+        fitted_croston, forecast_croston = croston(
+            data_produk.values,
+            alpha=0.4,
+            n_forecast=jumlah_forecast
+        )
+
+        future_index = pd.date_range(
+            start=data_produk.index[-1] + pd.offsets.MonthEnd(1),
+            periods=jumlah_forecast,
+            freq='ME'
+        )
+
+        mae_croston = mean_absolute_error(
+            data_produk.values,
+            fitted_croston
+        )
+
+        st.metric(
+            "MAE Croston",
+            f"{mae_croston:.2f}"
+        )
+
+        fig6, ax6 = plt.subplots(figsize=(12,5))
+
+        ax6.plot(
+            data_produk.index,
+            data_produk.values,
+            marker='o',
+            label='Aktual'
+        )
+
+        ax6.plot(
+            future_index,
+            forecast_croston,
+            marker='o',
+            linestyle='--',
+            label='Forecast Croston'
+        )
+
+        ax6.legend()
+
+        ax6.grid(True)
+
+        st.pyplot(fig6)
 
     # ==========================================
     # PERBANDINGAN SEMUA METODE
@@ -704,7 +602,7 @@ if uploaded_file is not None:
 
     else:
 
-        # Holt-Winters
+        # HW
 
         model_hw = ExponentialSmoothing(
             data_produk,
@@ -766,8 +664,21 @@ if uploaded_file is not None:
             fitted_arima
         )
 
+        # CROSTON
+
+        fitted_croston, forecast_croston = croston(
+            data_produk.values,
+            alpha=0.4,
+            n_forecast=jumlah_forecast
+        )
+
+        mae_croston = mean_absolute_error(
+            data_produk.values,
+            fitted_croston
+        )
+
         # ==========================================
-        # TABEL PERBANDINGAN
+        # TABEL
         # ==========================================
 
         st.subheader(
@@ -777,13 +688,15 @@ if uploaded_file is not None:
         perbandingan = pd.DataFrame({
             'Metode': [
                 'Holt-Winters',
-                'Double Exponential Smoothing',
-                'ARIMA'
+                'DES',
+                'ARIMA',
+                'Croston'
             ],
             'MAE': [
                 mae_hw,
                 mae_des,
-                mae_arima
+                mae_arima,
+                mae_croston
             ]
         })
 
@@ -811,15 +724,7 @@ if uploaded_file is not None:
             'Perbandingan Nilai MAE'
         )
 
-        ax_mae.set_ylabel('MAE')
-
-        plt.xticks(rotation=10)
-
-        ax_mae.grid(
-            True,
-            linestyle='--',
-            alpha=0.5
-        )
+        ax_mae.grid(True)
 
         st.pyplot(fig_mae)
 
@@ -839,56 +744,3 @@ if uploaded_file is not None:
             f"dengan MAE "
             f"{metode_terbaik['MAE']:.2f}"
         )
-
-        # ==========================================
-        # VISUALISASI GABUNGAN
-        # ==========================================
-
-        fig6, ax6 = plt.subplots(
-            figsize=(12,5)
-        )
-
-        ax6.plot(
-            data_produk.index,
-            data_produk.values,
-            marker='o',
-            label='Data Aktual'
-        )
-
-        ax6.plot(
-            forecast_hw.index,
-            forecast_hw.values,
-            marker='o',
-            linestyle='--',
-            label='Holt-Winters'
-        )
-
-        ax6.plot(
-            forecast_des.index,
-            forecast_des.values,
-            marker='o',
-            linestyle='--',
-            label='DES'
-        )
-
-        ax6.plot(
-            forecast_arima.index,
-            forecast_arima.values,
-            marker='o',
-            linestyle='--',
-            label='ARIMA'
-        )
-
-        ax6.set_title(
-            f'Perbandingan Forecast Produk {produk}'
-        )
-
-        ax6.legend()
-
-        ax6.grid(
-            True,
-            linestyle='--',
-            alpha=0.5
-        )
-
-        st.pyplot(fig6)

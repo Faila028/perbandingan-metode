@@ -15,8 +15,6 @@ from statsmodels.tsa.holtwinters import (
 
 from statsmodels.tsa.arima.model import ARIMA
 
-from statsmodels.tsa.exponential_smoothing.ets import ETSModel
-
 # ==========================================
 # CONFIG HALAMAN
 # ==========================================
@@ -464,7 +462,6 @@ if uploaded_file is not None:
         "Pilih Metode Forecasting",
         [
             "Holt-Winters",
-            "ETS",
             "Double Exponential Smoothing",
             "ARIMA",
             "Perbandingan Semua Metode"
@@ -570,71 +567,6 @@ if uploaded_file is not None:
         )
 
         st.pyplot(fig3)
-
-    # ==========================================
-    # ETS
-    # ==========================================
-
-    elif metode == "ETS":
-
-        model_ets = ETSModel(
-            data_produk,
-            error="add",
-            trend="add",
-            seasonal="add",
-            seasonal_periods=12
-        )
-
-        fit_ets = model_ets.fit()
-
-        forecast_ets = fit_ets.forecast(
-            jumlah_forecast
-        )
-
-        forecast_ets = forecast_ets.clip(
-            lower=0
-        )
-
-        mae_ets = mean_absolute_error(
-            data_produk,
-            fit_ets.fittedvalues
-        )
-
-        st.metric(
-            "MAE ETS",
-            f"{mae_ets:.2f}"
-        )
-
-        st.write(forecast_ets)
-
-        fig_ets, ax_ets = plt.subplots(
-            figsize=(12,5)
-        )
-
-        ax_ets.plot(
-            data_produk.index,
-            data_produk.values,
-            marker='o',
-            label='Data Aktual'
-        )
-
-        ax_ets.plot(
-            forecast_ets.index,
-            forecast_ets.values,
-            marker='o',
-            linestyle='--',
-            label='Forecast ETS'
-        )
-
-        ax_ets.legend()
-
-        ax_ets.grid(
-            True,
-            linestyle='--',
-            alpha=0.5
-        )
-
-        st.pyplot(fig_ets)
 
     # ==========================================
     # DOUBLE EXPONENTIAL SMOOTHING
@@ -792,27 +724,6 @@ if uploaded_file is not None:
             fit_hw.fittedvalues
         )
 
-        # ETS
-
-        model_ets = ETSModel(
-            data_produk,
-            error="add",
-            trend="add",
-            seasonal="add",
-            seasonal_periods=12
-        )
-
-        fit_ets = model_ets.fit()
-
-        forecast_ets = fit_ets.forecast(
-            jumlah_forecast
-        )
-
-        mae_ets = mean_absolute_error(
-            data_produk,
-            fit_ets.fittedvalues
-        )
-
         # DES
 
         model_des = Holt(
@@ -866,13 +777,11 @@ if uploaded_file is not None:
         perbandingan = pd.DataFrame({
             'Metode': [
                 'Holt-Winters',
-                'ETS',
                 'Double Exponential Smoothing',
                 'ARIMA'
             ],
             'MAE': [
                 mae_hw,
-                mae_ets,
                 mae_des,
                 mae_arima
             ]
@@ -952,14 +861,6 @@ if uploaded_file is not None:
             marker='o',
             linestyle='--',
             label='Holt-Winters'
-        )
-
-        ax6.plot(
-            forecast_ets.index,
-            forecast_ets.values,
-            marker='o',
-            linestyle='--',
-            label='ETS'
         )
 
         ax6.plot(
